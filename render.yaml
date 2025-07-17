@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: virustotal-telegram-bot
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: VIRUSTOTAL_API_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
+    autoDeploy: true
+    branch: main
