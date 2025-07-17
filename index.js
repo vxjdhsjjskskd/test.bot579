@@ -4,16 +4,21 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const http = require('http');
+const { config, validateConfig } = require('./config');
 
-// Получаем переменные из настроек Pella
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY;
+// Проверяем конфигурацию при старте
+validateConfig();
+
+// Получаем переменные из конфигурации
+const BOT_TOKEN = config.bot.token;
+const VIRUSTOTAL_API_KEY = config.virustotal.apiKey;
 
 // Создаем экземпляр бота
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
 // Базовые URL для VirusTotal API v3
-const VT_BASE_URL = 'https://www.virustotal.com/api/v3';
+const VT_BASE_URL = config.virustotal.baseUrl;
 
 // Функция для проверки файла
 async function scanFile(filePath, fileName) {
@@ -144,54 +149,35 @@ function isValidURL(string) {
 // Обработчик команды /start
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
-    const welcomeMessage = `
-🤖 *Добро пожаловать в VirusTotal Bot!*
-
-Я помогу вам проверить файлы, ссылки и IP-адреса на вирусы и угрозы.
-
-*Что я умею:*
-📁 Проверять файлы (до 32MB)
-🔗 Сканировать URL-адреса
-🌐 Анализировать IP-адреса
-
-*Как использовать:*
-• Отправьте файл для проверки
-• Отправьте ссылку в сообщении
-• Отправьте IP-адрес
-
-*Команды:*
-/start - Показать это сообщение
-/help - Помощь по использованию
-    `;
-    
-    bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
+    bot.sendMessage(chatId, config.messages.welcome, { parse_mode: 'Markdown' });
 });
 
 // Обработчик команды /help
 bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id;
-    const helpMessage = `
-ℹ️ *Помощь по использованию*
+    bot.sendMessage(chatId, config.messages.help, { parse_mode: 'Markdown' });
+});
 
-*Поддерживаемые форматы файлов:*
-• Исполняемые файлы (.exe, .dll, .msi)
-• Документы (.pdf, .doc, .docx)
-• Архивы (.zip, .rar, .7z)
-• Изображения (.jpg, .png, .gif)
-• И многие другие
+// Обработчик команды /status
+bot.onText(/\/status/, (msg) => {
+    const chatId = msg.chat.id;
+    const uptime = process.uptime();
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = Math.floor(uptime % 60);
+    
+    const statusMessage = `
+🤖 *Статус бота*
 
-*Ограничения:*
-• Максимальный размер файла: 32MB
-• Бесплатный API имеет лимиты запросов
-• Анализ может занять некоторое время
-
-*Примеры использования:*
-1. Отправьте файл как вложение
-2. Отправьте: https://example.com
-3. Отправьте: 8.8.8.8
+✅ Статус: Активен
+⏱️ Время работы: ${hours}ч ${minutes}м ${seconds}с
+💾 Использование памяти: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB
+🔗 API VirusTotal: Подключен
+📊 Версия Node.js: ${process.version}
+🌐 Платформа: ${process.platform}
     `;
     
-    bot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
+    bot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' });
 });
 
 // Обработчик файлов
@@ -419,3 +405,49 @@ bot.on('polling_error', (error) => {
 
 console.log('🤖 VirusTotal Bot запущен!');
 console.log('📡 Ожидаю сообщения...');
+
+// Простой HTTP сервер для health check на Render
+const server = http.createServer((req, res) => {
+    if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+            status: 'OK', 
+            timestamp: new Date().toISOString(),
+            service: 'VirusTotal Telegram Bot',
+            uptime: process.uptime()
+        }));
+    } else if (req.url === '/') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>VirusTotal Telegram Bot</title>
+                <style>
+                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                    .status { color: #28a745; font-size: 24px; margin: 20px 0; }
+                    .info { color: #666; }
+                </style>
+            </head>
+            <body>
+                <h1>🤖 VirusTotal Telegram Bot</h1>
+                <div class="status">✅ Сервис работает</div>
+                <div class="info">
+                    <p>Бот активен и готов к работе</p>
+                    <p>Время работы: ${Math.floor(process.uptime())} секунд</p>
+                    <p>Найдите бота в Telegram и начните проверку файлов!</p>
+                </div>
+            </body>
+            </html>
+        `);
+    } else {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not Found');
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`🌐 HTTP сервер запущен на порту ${PORT}`);
+    console.log(`🏥 Health check доступен по адресу: http://localhost:${PORT}/health`);
+});
