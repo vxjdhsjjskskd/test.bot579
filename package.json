@@ -1,39 +1,17 @@
 {
-  "name": "virustotal-telegram-bot",
+  "name": "weather-telegram-bot",
   "version": "1.0.0",
-  "description": "Telegram bot for VirusTotal API integration - scan files, URLs and IPs",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "node --check index.js",
-    "validate": "node -e \"require('./config.js').validateConfig()\"",
-    "clean": "rm -rf temp/* || true"
+    "start": "node index.js"
   },
-  "keywords": [
-    "telegram",
-    "bot",
-    "virustotal",
-    "security",
-    "antivirus",
-    "malware",
-    "scanner"
-  ],
-  "author": "Your Name",
-  "license": "MIT",
   "dependencies": {
-    "node-telegram-bot-api": "^0.64.0",
-    "axios": "^1.6.0",
-    "form-data": "^4.0.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
-  },
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "your-repository-url"
+    "telegraf": "^4.16.0",
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.2",
+    "mongoose": "^8.4.3"  
   }
 }
