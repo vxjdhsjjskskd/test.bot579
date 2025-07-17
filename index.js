@@ -3,9 +3,9 @@ const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
-const http = require('http');
-const { config, validateConfig } = require('./config');
+const crypto = require('crypto'); // Хотя импортируется, не используется в этом файле
+const http = require('http'); // Для веб-сервера health check
+const { config, validateConfig } = require('./config'); // Импорт конфигурации
 
 // Проверяем конфигурацию при старте
 validateConfig();
@@ -15,6 +15,8 @@ const BOT_TOKEN = config.bot.token;
 const VIRUSTOTAL_API_KEY = config.virustotal.apiKey;
 
 // Создаем экземпляр бота
+// ВАЖНО: Для Render.com, если вы используете вебхуки, polling: true нужно убрать
+// Если вы используете long polling (как сейчас), то это нормально
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
 // Базовые URL для VirusTotal API v3
@@ -381,12 +383,8 @@ bot.on('message', async (msg) => {
     } else {
         // Неизвестный формат
         bot.sendMessage(chatId, config.messages.unknownFormat, { parse_mode: 'Markdown' });
-    }IP-адрес (например: 8.8.8.8)
-
-Или используйте /help для получения справки.
-        `, { parse_mode: 'Markdown' });
     }
-});
+}); // <-- ЗДЕСЬ БЫЛА ОШИБКА: ЛИШНИЙ ТЕКСТ И НЕПРАВИЛЬНОЕ ЗАКРЫТИЕ
 
 // Обработка ошибок
 bot.on('error', (error) => {
@@ -446,3 +444,4 @@ server.listen(PORT, () => {
     console.log(`🌐 HTTP сервер запущен на порту ${PORT}`);
     console.log(`🏥 Health check доступен по адресу: http://localhost:${PORT}/health`);
 });
+                    
