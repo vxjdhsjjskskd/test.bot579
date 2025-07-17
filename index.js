@@ -185,8 +185,8 @@ bot.on('document', async (msg) => {
     const chatId = msg.chat.id;
     const file = msg.document;
     
-    // Проверяем размер файла (32MB лимит для бесплатного API)
-    if (file.file_size > 32 * 1024 * 1024) {
+    // Проверяем размер файла
+    if (file.file_size > config.virustotal.limits.maxFileSize) {
         bot.sendMessage(chatId, '❌ Файл слишком большой! Максимальный размер: 32MB');
         return;
     }
@@ -199,9 +199,9 @@ bot.on('document', async (msg) => {
         const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileInfo.file_path}`;
         
         // Создаем временный файл
-        const tempDir = path.join(__dirname, 'temp');
+        const tempDir = config.files.tempDir;
         if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir);
+            fs.mkdirSync(tempDir, { recursive: true });
         }
         
         const tempFilePath = path.join(tempDir, `${Date.now()}_${file.file_name}`);
@@ -238,10 +238,10 @@ bot.on('document', async (msg) => {
         
         let analysisComplete = false;
         let attempts = 0;
-        const maxAttempts = 30; // 5 минут максимум
+        const maxAttempts = config.timeouts.maxAnalysisTime / config.timeouts.analysisCheck; // 30 попыток по 10 секунд
         
         while (!analysisComplete && attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 10000)); // Ждем 10 секунд
+            await new Promise(resolve => setTimeout(resolve, config.timeouts.analysisCheck));
             
             try {
                 const analysisResult = await getAnalysisResult(analysisId);
@@ -380,13 +380,8 @@ bot.on('message', async (msg) => {
         
     } else {
         // Неизвестный формат
-        bot.sendMessage(chatId, `
-❓ *Неизвестный формат данных*
-
-Пожалуйста, отправьте:
-• 📁 Файл для проверки
-• 🔗 Валидный URL (например: https://example.com)
-• 🌐 IP-адрес (например: 8.8.8.8)
+        bot.sendMessage(chatId, config.messages.unknownFormat, { parse_mode: 'Markdown' });
+    }IP-адрес (например: 8.8.8.8)
 
 Или используйте /help для получения справки.
         `, { parse_mode: 'Markdown' });
